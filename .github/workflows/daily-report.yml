@@ -1,0 +1,37 @@
+name: Daily Biotech Report
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Runs at 6:00 UTC every day
+  workflow_dispatch:      # Allows manual trigger from GitHub UI
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run report generator
+        run: |
+          python CB_science_tracker.py
+          # Rename latest report to index.html for GitHub Pages
+          cp "$(ls -t ~/Documents/Daily_Biotech_Report/daily_biotech_report_*.html | head -1)" index.html
+
+      - name: Commit and push report
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add index.html
+          git commit -m "Update daily report: $(date +'%Y-%m-%d')" || exit 0  # Don't fail if no changes
+          git push
